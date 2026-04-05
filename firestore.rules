@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: books
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required, < 200 chars)
+    //   - author: string (required, < 100 chars)
+    //   - genre: string (required, < 50 chars)
+    //   - description: string (optional, < 2000 chars)
+    //   - thumbnail: string (optional, < 1MB)
+    //   - rating: number (optional, 0-5)
+    //   - reviewCount: number (optional, >= 0)
+    //   - userId: string (required, matches auth.uid)
+    //   - createdAt: timestamp (required)
+    //   - fileName: string (optional)
+    //   - fileSize: number (optional)
+    //   - pageCount: number (optional)
+    //
+    // Collection: reviews
+    // Document ID: auto-generated
+    // Fields:
+    //   - bookId: string (required, exists in books)
+    //   - userId: string (required, matches auth.uid)
+    //   - userName: string (required, < 100 chars)
+    //   - userPhoto: string (optional)
+    //   - rating: number (required, 1-5)
+    //   - comment: string (required, < 5000 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidBook(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.author is string && data.author.size() > 0 && data.author.size() < 100 &&
+             data.genre is string && data.genre.size() > 0 && data.genre.size() < 50 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 2000)) &&
+             (!('thumbnail' in data) || (data.thumbnail is string && data.thumbnail.size() < 1048576)) &&
+             (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+             (!('reviewCount' in data) || (data.reviewCount is number && data.reviewCount >= 0)) &&
+             data.userId == request.auth.uid &&
+             data.createdAt is timestamp;
+    }
+    
+    function isValidReview(data) {
+      return data.bookId is string &&
+             data.userId == request.auth.uid &&
+             data.userName is string && data.userName.size() > 0 && data.userName.size() < 100 &&
+             (!('userPhoto' in data) || (data.userPhoto is string)) &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() > 0 && data.comment.size() < 5000 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /books/{bookId} {
+      // Allow any authenticated user to read all books (public library feel)
+      allow read: if isAuthenticated();
+      
+      // Only owner can create or update their own books
+      allow create: if isAuthenticated() && isValidBook(request.resource.data);
+      allow update: if isOwner(resource.data.userId) && isValidBook(request.resource.data);
+      
+      // Only owner can delete their own books
+      allow delete: if isOwner(resource.data.userId);
+    }
+    
+    match /reviews/{reviewId} {
+      // Allow any authenticated user to read all reviews
+      allow read: if isAuthenticated();
+      
+      // Only owner can create or update their own reviews
+      allow create: if isAuthenticated() && isValidReview(request.resource.data);
+      allow update: if isOwner(resource.data.userId) && isValidReview(request.resource.data);
+      
+      // Only owner can delete their own reviews
+      allow delete: if isOwner(resource.data.userId);
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "Book": {
+      "title": "Book",
+      "description": "A digital volume in the library.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the book." },
+        "author": { "type": "string", "description": "The author of the book." },
+        "genre": { "type": "string", "description": "The genre of the book." },
+        "description": { "type": "string", "description": "A short synopsis of the book." },
+        "thumbnail": { "type": "string", "description": "Base64 or URL of the book cover." },
+        "rating": { "type": "number", "description": "Average rating of the book." },
+        "reviewCount": { "type": "number", "description": "Number of reviews for the book." },
+        "userId": { "type": "string", "description": "The UID of the user who uploaded the book." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the book was cataloged." },
+        "fileName": { "type": "string", "description": "Original PDF filename." },
+        "fileSize": { "type": "number", "description": "Size of the PDF in bytes." },
+        "pageCount": { "type": "number", "description": "Number of pages in the PDF." }
+      },
+      "required": ["title", "author", "genre", "userId", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A reader's reflection on a book.",
+      "type": "object",
+      "properties": {
+        "bookId": { "type": "string", "description": "The ID of the book being reviewed." },
+        "userId": { "type": "string", "description": "The UID of the reviewer." },
+        "userName": { "type": "string", "description": "The display name of the reviewer." },
+        "userPhoto": { "type": "string", "description": "The photo URL of the reviewer." },
+        "rating": { "type": "number", "description": "Rating from 1 to 5." },
+        "comment": { "type": "string", "description": "The review text." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the review was published." }
+      },
+      "required": ["bookId", "userId", "userName", "rating", "comment", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/books/{bookId}": {
+      "schema": "Book",
+      "description": "Collection of cataloged books."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Collection of reader reflections."
+    }
+  }
+}
